@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+
+# 설계·계획 문서는 로컬에만 둔다
+docs/
+
+.env
+.env.local
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+coverage/
