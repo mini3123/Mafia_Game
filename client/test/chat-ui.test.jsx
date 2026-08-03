@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChatPanel, { canSendHere } from '../src/components/ChatPanel.jsx';
 
@@ -129,6 +129,27 @@ describe('ChatPanel', () => {
   it('메시지가 없으면 빈 화면을 안내한다', () => {
     render(<ChatPanel view={view('DAY_DISCUSSION')} messages={[]} onSend={vi.fn()} />);
     expect(screen.getByText(/아직 오간 말이 없습니다/)).toBeInTheDocument();
+  });
+
+  it('위의 대화를 읽는 중에는 새 메시지가 와도 아래로 끌어내리지 않는다', () => {
+    const initial = messages.filter((message) => message.channel === 'PUBLIC');
+    const props = { view: view('DAY_DISCUSSION'), onSend: vi.fn() };
+    const { rerender } = render(<ChatPanel {...props} messages={initial} />);
+    const log = screen.getByRole('list');
+
+    let scrollHeight = 300;
+    Object.defineProperty(log, 'scrollHeight', { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(log, 'clientHeight', { configurable: true, value: 100 });
+    log.scrollTop = 40;
+    fireEvent.scroll(log);
+
+    scrollHeight = 400;
+    rerender(<ChatPanel {...props} messages={[
+      ...initial,
+      { channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '새 말', at: 10 },
+    ]} />);
+
+    expect(log.scrollTop).toBe(40);
   });
 });
 

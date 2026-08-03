@@ -27,7 +27,7 @@ export default function VoteBoard({ view, onNominate, onJudge }) {
         <p className="vote__ask">처형할 사람을 명단에서 지목하세요.</p>
 
         {alive && (
-          <button className="btn btn--quiet vote__abstain" onClick={() => onNominate(null)}>
+          <button type="button" className="btn btn--quiet vote__abstain" onClick={() => onNominate(null)}>
             기권
           </button>
         )}
@@ -73,6 +73,7 @@ export default function VoteBoard({ view, onNominate, onJudge }) {
         {alive && !isNominee && (
           <div className="vote__judge">
             <button
+              type="button"
               className="btn"
               aria-pressed={mine === true}
               onClick={() => onJudge(true)}
@@ -80,6 +81,7 @@ export default function VoteBoard({ view, onNominate, onJudge }) {
               찬성
             </button>
             <button
+              type="button"
               className="btn"
               aria-pressed={mine === false}
               onClick={() => onJudge(false)}

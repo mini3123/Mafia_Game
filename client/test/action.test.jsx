@@ -50,10 +50,10 @@ describe('nightActionFor', () => {
     expect(nightActionFor(view('CITIZEN'))).toBeNull();
   });
 
-  it('접선에 성공한 스파이는 더 이상 행동하지 않는다', () => {
+  it('접선에 성공한 스파이도 다른 사람을 조사할 수 있다', () => {
     const v = view('SPY');
     v.me.contactSucceeded = true;
-    expect(nightActionFor(v)).toBeNull();
+    expect(nightActionFor(v).selectableIds).toEqual(['p2', 'p3']);
   });
 
   it('죽은 사람은 행동이 없다', () => {
@@ -93,11 +93,19 @@ describe('ActionPrompt', () => {
     expect(screen.getByText(/아침을 기다리세요/)).toBeInTheDocument();
   });
 
-  it('접선에 성공한 스파이에게 합류 안내를 보여준다', () => {
+  it('접선에 성공한 스파이에게 다음 조사 안내를 보여준다', () => {
     const v = view('SPY');
     v.me.contactSucceeded = true;
     render(<ActionPrompt view={v} />);
-    expect(screen.getByText(/마피아 채팅에 합류/)).toBeInTheDocument();
+    expect(screen.getByText(/누구의 직업을 조사할까요/)).toBeInTheDocument();
+  });
+
+  it('스파이가 이번 밤 조사했다면 더 고를 수 없다', () => {
+    const v = view('SPY', { myAction: { type: 'SPY_CONTACT', targetId: 'p2' } });
+    v.me.contactSucceeded = true;
+    expect(nightActionFor(v).selectableIds).toEqual([]);
+    render(<ActionPrompt view={v} />);
+    expect(screen.getByText(/오늘 조사를 마쳤습니다/)).toBeInTheDocument();
   });
 
   it('죽은 사람에게는 유령 채팅만 쓸 수 있다고 알려준다', () => {

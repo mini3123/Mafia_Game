@@ -103,6 +103,8 @@ export function advancePhase(room, { now = 0, rng = Math.random } = {}) {
       return room.phase;
 
     case PHASE.DEFENSE:
+      // 찬반 투표는 항상 빈 표에서 시작한다. 이전 페이즈의 늦은/남은 값을 승계하지 않는다.
+      room.judgeVotes = {};
       setPhase(room, PHASE.VOTE_JUDGE, now);
       return room.phase;
 

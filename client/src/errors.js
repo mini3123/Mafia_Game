@@ -16,9 +16,11 @@ const MESSAGES = {
   SELF_NOT_ALLOWED: '자기 자신은 고를 수 없습니다.',
   CANNOT_TARGET_MAFIA: '같은 편은 고를 수 없습니다.',
   ALREADY_CONTACTED: '이미 접선에 성공했습니다.',
+  ALREADY_ACTED: '이번 밤에는 이미 조사했습니다.',
   NOT_NOMINATE_PHASE: '지금은 지목 투표 시간이 아닙니다.',
   NOT_JUDGE_PHASE: '지금은 찬반 투표 시간이 아닙니다.',
   IS_NOMINEE: '지목된 사람은 투표할 수 없습니다.',
+  INVALID_VOTE: '찬성 또는 반대를 다시 선택해주세요.',
   CHAT_BLOCKED: '지금은 이 채널에 말할 수 없습니다.',
 };
 

@@ -53,6 +53,7 @@ export default function ChatPanel({ view, messages, onSend }) {
   const [channel, setChannel] = useState(channels[0]);
   const [draft, setDraft] = useState('');
   const logRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   // 죽으면 유령 탭이 새로 생긴다. 사라진 탭에 머무르지 않게 되돌린다.
   useEffect(() => {
@@ -71,11 +72,25 @@ export default function ChatPanel({ view, messages, onSend }) {
     [view.players],
   );
 
-  // 채팅 상자 안에서만 내린다. scrollIntoView를 쓰면 페이지 전체가 튄다.
+  // 탭을 바꿀 때는 해당 채널의 최신 메시지부터 보여준다.
   useEffect(() => {
+    stickToBottomRef.current = true;
     const log = logRef.current;
     if (log) log.scrollTop = log.scrollHeight;
-  }, [shown.length, channel]);
+  }, [channel]);
+
+  // 사용자가 위의 대화를 읽는 중이면 새 메시지가 와도 현재 위치를 보존한다.
+  useEffect(() => {
+    const log = logRef.current;
+    if (log && stickToBottomRef.current) log.scrollTop = log.scrollHeight;
+  }, [shown.length]);
+
+  const trackScrollPosition = () => {
+    const log = logRef.current;
+    if (!log) return;
+    const distanceFromBottom = log.scrollHeight - log.clientHeight - log.scrollTop;
+    stickToBottomRef.current = distanceFromBottom <= 24;
+  };
 
   const enabled = canSendHere(view, channel);
 
@@ -104,7 +119,7 @@ export default function ChatPanel({ view, messages, onSend }) {
         ))}
       </div>
 
-      <ol className="chat__log" ref={logRef}>
+      <ol className="chat__log" ref={logRef} onScroll={trackScrollPosition}>
         {groups.length === 0 && <li className="chat__empty">아직 오간 말이 없습니다.</li>}
 
         {groups.map((group, index) =>

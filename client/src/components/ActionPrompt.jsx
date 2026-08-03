@@ -39,11 +39,13 @@ export function nightActionFor(view) {
         selectableIds: others,
       };
     case 'SPY':
-      if (me.contactSucceeded) return null;
       return {
         type: ACTION.SPY_CONTACT,
-        prompt: '누구에게 접선을 시도할까요? 그 사람의 정확한 직업을 알게 됩니다.',
-        selectableIds: others,
+        prompt: me.contactSucceeded
+          ? '오늘 밤 누구의 직업을 조사할까요?'
+          : '누구에게 접선을 시도할까요? 그 사람의 정확한 직업을 알게 됩니다.',
+        // 즉시 직업을 알게 되므로 같은 밤에 대상을 바꾸며 여러 명을 훑을 수 없다.
+        selectableIds: view.myAction?.type === ACTION.SPY_CONTACT ? [] : others,
       };
     default:
       return null;
@@ -60,9 +62,6 @@ export default function ActionPrompt({ view }) {
     if (!me?.alive) {
       return <p className="prompt prompt--quiet">당신은 죽었습니다. 유령 채팅만 쓸 수 있습니다.</p>;
     }
-    if (me.role === 'SPY' && me.contactSucceeded) {
-      return <p className="prompt prompt--quiet">접선에 성공해 마피아 채팅에 합류했습니다.</p>;
-    }
     return <p className="prompt prompt--quiet">밤입니다. 아침을 기다리세요.</p>;
   }
 
@@ -74,7 +73,11 @@ export default function ActionPrompt({ view }) {
     <section className="prompt">
       <p className="prompt__ask">{action.prompt}</p>
       <p className="prompt__state">
-        {picked ? `${picked.nickname}님을 골랐습니다. 바꾸려면 다시 고르세요.` : '아래 명단에서 고르세요.'}
+        {picked
+          ? action.type === ACTION.SPY_CONTACT
+            ? `${picked.nickname}님의 직업을 확인했습니다. 오늘 조사를 마쳤습니다.`
+            : `${picked.nickname}님을 골랐습니다. 바꾸려면 다시 고르세요.`
+          : '아래 명단에서 고르세요.'}
       </p>
     </section>
   );

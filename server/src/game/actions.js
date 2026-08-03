@@ -51,11 +51,12 @@ export function submitNightAction(room, playerId, { type, targetId }) {
       return OK;
 
     case ACTION.SPY_CONTACT: {
-      if (room.spyContacted) return fail('ALREADY_CONTACTED');
+      // 직업은 즉시 공개되므로 같은 밤에 여러 명을 훑을 수 없게 한 번만 허용한다.
+      if (room.night.spyContact) return fail('ALREADY_ACTED');
       room.night.spyContact = targetId;
-      // 접선만 즉시 판정한다. 밤 종료까지 미루면 아무리 빨라도 다음 밤에야 합류하게 된다.
+      // 접선·조사는 즉시 판정한다. 접선 뒤에도 다음 밤부터 한 명씩 계속 조사할 수 있다.
       room.spyKnownJobs[targetId] = target.role;
-      if (target.role === ROLE.MAFIA) {
+      if (!room.spyContacted && target.role === ROLE.MAFIA) {
         room.spyContacted = true;
         room.spyContactedOnDay = room.day;
       }
@@ -85,7 +86,7 @@ export function shouldEndNightEarly(room) {
   if (alive.some((p) => p.role === ROLE.POLICE) && !room.night.policeCheck) return false;
 
   const spyAlive = alive.some((p) => p.role === ROLE.SPY);
-  if (spyAlive && !room.spyContacted && !room.night.spyContact) return false;
+  if (spyAlive && !room.night.spyContact) return false;
 
   return true;
 }
@@ -121,23 +122,29 @@ export function adjustPhaseTime(room, playerId, direction, { now = 0 } = {}) {
   if (!player || !player.alive) return fail('NOT_ALIVE');
   if (room.timeAdjustedBy[playerId]) return fail('ALREADY_ADJUSTED');
 
-  const delta = direction === 'EXTEND' ? TIME_STEP_MS : -TIME_STEP_MS;
   const base = PHASE_DURATION_MS[room.phase] ?? 0;
   const floor = now + MIN_REMAINING_MS;
   const ceiling = now + base * 2;
 
-  room.phaseEndsAt = Math.min(Math.max(room.phaseEndsAt + delta, floor), ceiling);
+  if (direction === 'EXTEND') {
+    room.phaseEndsAt = Math.min(room.phaseEndsAt + TIME_STEP_MS, ceiling);
+  } else {
+    // 이미 5초 미만이면 바닥값 때문에 시간이 도리어 늘어나서는 안 된다.
+    const nonIncreasingFloor = Math.min(room.phaseEndsAt, floor);
+    room.phaseEndsAt = Math.max(room.phaseEndsAt - TIME_STEP_MS, nonIncreasingFloor);
+  }
   room.timeAdjustedBy[playerId] = direction;
   return OK;
 }
 
 export function submitJudge(room, playerId, approve) {
   if (room.phase !== PHASE.VOTE_JUDGE) return fail('NOT_JUDGE_PHASE');
+  if (typeof approve !== 'boolean') return fail('INVALID_VOTE');
 
   const voter = playerById(room, playerId);
   if (!voter || !voter.alive) return fail('NOT_ALIVE');
   if (playerId === room.nominee) return fail('IS_NOMINEE');
 
-  room.judgeVotes[playerId] = Boolean(approve);
+  room.judgeVotes[playerId] = approve;
   return OK;
 }

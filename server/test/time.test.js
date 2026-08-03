@@ -57,6 +57,20 @@ describe('adjustPhaseTime', () => {
     expect(room.phaseEndsAt).toBe(MIN_REMAINING_MS);
   });
 
+  it('5초보다 적게 남았을 때 단축해도 시간이 도리어 늘지 않는다', () => {
+    const room = dayRoom();
+    room.phaseEndsAt = 3_000;
+    adjustPhaseTime(room, 'p1', 'SHORTEN', { now: 0 });
+    expect(room.phaseEndsAt).toBe(3_000);
+  });
+
+  it('15초 남았을 때 20초 단축하면 5초가 된다', () => {
+    const room = dayRoom();
+    room.phaseEndsAt = 15_000;
+    adjustPhaseTime(room, 'p1', 'SHORTEN', { now: 0 });
+    expect(room.phaseEndsAt).toBe(5_000);
+  });
+
   it('아무리 늘려도 기본 시간의 두 배를 넘지 않는다', () => {
     const room = dayRoom();
     for (const p of room.players) adjustPhaseTime(room, p.id, 'EXTEND', { now: 0 });

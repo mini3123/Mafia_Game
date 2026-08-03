@@ -189,7 +189,7 @@ describe('스파이 접선', () => {
     });
   });
 
-  it('접선에 성공한 뒤에는 더 이상 접선할 수 없다', () => {
+  it('접선에 성공한 뒤에도 다음 밤에 다른 사람의 직업을 조사한다', () => {
     const room = makeRoom(SEVEN);
     const spyId = idOf(room, ROLE.SPY);
     submitNightAction(room, spyId, { type: ACTION.SPY_CONTACT, targetId: idOf(room, ROLE.MAFIA) });
@@ -198,7 +198,19 @@ describe('스파이 접선', () => {
     const result = submitNightAction(room, spyId, {
       type: ACTION.SPY_CONTACT, targetId: idOf(room, ROLE.DOCTOR),
     });
-    expect(result).toEqual({ ok: false, code: 'ALREADY_CONTACTED' });
+    expect(result).toEqual({ ok: true });
+    expect(room.spyKnownJobs[idOf(room, ROLE.DOCTOR)]).toBe(ROLE.DOCTOR);
+  });
+
+  it('즉시 정보를 얻는 스파이는 같은 밤에 두 명을 조사할 수 없다', () => {
+    const room = makeRoom(SEVEN);
+    const spyId = idOf(room, ROLE.SPY);
+    submitNightAction(room, spyId, {
+      type: ACTION.SPY_CONTACT, targetId: idOf(room, ROLE.DOCTOR),
+    });
+    expect(submitNightAction(room, spyId, {
+      type: ACTION.SPY_CONTACT, targetId: idOf(room, ROLE.POLICE),
+    })).toEqual({ ok: false, code: 'ALREADY_ACTED' });
   });
 });
 
@@ -238,12 +250,16 @@ describe('shouldEndNightEarly', () => {
     expect(shouldEndNightEarly(room)).toBe(false);
   });
 
-  it('이전 밤에 접선한 스파이는 더 기다리지 않는다', () => {
+  it('이전 밤에 접선한 스파이도 이번 밤 조사 전에는 기다린다', () => {
     const room = makeRoom(SEVEN);
     room.spyContacted = true;
     room.spyContactedOnDay = 1;
     room.day = 2;
     allActed(room);
+    expect(shouldEndNightEarly(room)).toBe(false);
+    submitNightAction(room, idOf(room, ROLE.SPY), {
+      type: ACTION.SPY_CONTACT, targetId: idOf(room, ROLE.DOCTOR),
+    });
     expect(shouldEndNightEarly(room)).toBe(true);
   });
 

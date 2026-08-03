@@ -41,7 +41,9 @@ describe('advancePhase', () => {
   it('최후 변론 다음은 찬반 투표다', () => {
     const room = makeRoom(SEVEN, { phase: PHASE.DEFENSE });
     room.nominee = 'p4';
+    room.judgeVotes = { p1: true };
     expect(advancePhase(room, opts)).toBe(PHASE.VOTE_JUDGE);
+    expect(room.judgeVotes).toEqual({});
   });
 
   it('처형되지 않으면 다음 밤으로 간다', () => {

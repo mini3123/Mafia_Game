@@ -118,6 +118,14 @@ describe('submitJudge', () => {
     submitJudge(room, 'p2', false);
     expect(room.judgeVotes).toEqual({ p1: true, p2: false });
   });
+
+  it('찬반을 제출하지 않은 요청은 반대표로 바꾸지 않고 거부한다', () => {
+    const room = judgeRoom();
+    room.nominee = 'p4';
+    expect(submitJudge(room, 'p1', undefined))
+      .toEqual({ ok: false, code: 'INVALID_VOTE' });
+    expect(room.judgeVotes).toEqual({});
+  });
 });
 
 describe('tallyJudge', () => {
