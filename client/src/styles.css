@@ -515,6 +515,70 @@ input:focus {
   text-align: center;
 }
 
+/* --- 투표 --------------------------------------------------------------- */
+
+.vote {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: calc(var(--step) * 4);
+  margin: 0 0 calc(var(--step) * 5);
+}
+
+.vote__ask {
+  margin: 0;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.vote__note {
+  margin: calc(var(--step) * 2) 0 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.vote__abstain {
+  width: auto;
+  margin-top: calc(var(--step) * 3);
+  border: 1px solid var(--line);
+}
+
+.vote__judge {
+  display: flex;
+  gap: calc(var(--step) * 2);
+  margin-top: calc(var(--step) * 3);
+}
+
+.vote__judge .btn {
+  margin-top: 0;
+  font-weight: 700;
+}
+
+.vote__judge .btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
+.vote__count {
+  margin: calc(var(--step) * 3) 0 0;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+
+.tally {
+  list-style: none;
+  margin: calc(var(--step) * 3) 0 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--step) * 1) calc(var(--step) * 4);
+}
+
 /* 겨눈 대상에 얹히는 조준선 */
 .seat__scope {
   width: 17px;

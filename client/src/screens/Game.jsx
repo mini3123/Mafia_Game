@@ -1,6 +1,7 @@
 import PhaseBanner from '../components/PhaseBanner.jsx';
 import Roster from '../components/Roster.jsx';
 import ActionPrompt, { ACTION, nightActionFor } from '../components/ActionPrompt.jsx';
+import VoteBoard, { voteCountsOf, nominateTargets } from '../components/VoteBoard.jsx';
 import Scope from '../components/Scope.jsx';
 import { ROLE_LABEL } from '../labels.js';
 import { errorMessage } from '../errors.js';
@@ -33,6 +34,17 @@ function nightReport(view) {
 export default function Game({ view, game }) {
   const report = view.phase === 'DAY_DISCUSSION' ? nightReport(view) : null;
   const action = nightActionFor(view);
+  const nominable = nominateTargets(view);
+
+  // 밤에는 역할 행동으로, 지목 투표 때는 투표로 — 명단 하나에서 다 고른다.
+  const selectableIds = action?.selectableIds ?? nominable;
+  const selectedId = action
+    ? (view.myAction?.targetId ?? null)
+    : (view.votes?.[view.me?.id] ?? null);
+  const pick = (targetId) => {
+    if (action) game.submitAction(action.type, targetId);
+    else if (nominable.length > 0) game.nominate(targetId);
+  };
 
   return (
     <main className="game">
@@ -49,21 +61,23 @@ export default function Game({ view, game }) {
       {game.error && <p role="alert" className="error">{errorMessage(game.error)}</p>}
 
       <ActionPrompt view={view} />
+      <VoteBoard view={view} onNominate={game.nominate} onJudge={game.judge} />
 
       <Roster
         players={view.players}
         me={view.me}
         annotations={annotationsFor(view)}
-        selectableIds={action?.selectableIds ?? []}
-        selectedId={view.myAction?.targetId ?? null}
-        onSelect={(targetId) => action && game.submitAction(action.type, targetId)}
+        voteCounts={voteCountsOf(view)}
+        selectableIds={selectableIds}
+        selectedId={selectedId}
+        onSelect={pick}
         /* 마피아가 겨눈 사람에게만 조준선을 얹는다 */
         selectedMark={
           action?.type === ACTION.MAFIA_KILL ? <Scope className="seat__scope" /> : null
         }
       />
 
-      {/* 투표는 Task 17, 채팅은 Task 18에서 붙인다. */}
+      {/* 채팅은 Task 18에서 붙인다. */}
     </main>
   );
 }
