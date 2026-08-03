@@ -51,13 +51,15 @@ describe('useGame — 연결', () => {
 describe('useGame — 방 만들기와 세션 저장', () => {
   it('성공하면 세션을 localStorage에 저장한다', async () => {
     const socket = makeFakeSocket();
-    socket.nextAck = (event, payload, ack) => ack({ ok: true, code: 'ABC234', playerId: 'pid-1' });
+    socket.nextAck = (event, payload, ack) => ack({
+      ok: true, code: 'ABC234', playerId: 'pid-1', resumeToken: 'secret-1',
+    });
     const { result } = renderGame(socket);
 
     await act(async () => { await result.current.createRoom('나'); });
 
     expect(JSON.parse(localStorage.getItem('mafia:session')))
-      .toEqual({ code: 'ABC234', playerId: 'pid-1' });
+      .toEqual({ code: 'ABC234', resumeToken: 'secret-1' });
   });
 
   it('실패하면 오류 코드를 보관하고 세션을 저장하지 않는다', async () => {
@@ -72,13 +74,15 @@ describe('useGame — 방 만들기와 세션 저장', () => {
   });
 
   it('저장된 세션이 있으면 뜨자마자 재입장을 시도한다', () => {
-    localStorage.setItem('mafia:session', JSON.stringify({ code: 'ABC234', playerId: 'pid-1' }));
+    localStorage.setItem('mafia:session', JSON.stringify({
+      code: 'ABC234', resumeToken: 'secret-1',
+    }));
     const socket = makeFakeSocket();
     renderGame(socket);
     socket.fire('connect');
     expect(socket.sent).toContainEqual({
       event: 'room:rejoin',
-      payload: { code: 'ABC234', playerId: 'pid-1' },
+      payload: { code: 'ABC234', resumeToken: 'secret-1' },
     });
   });
 });
@@ -152,7 +156,9 @@ describe('useGame — 오류', () => {
   });
 
   it('leave하면 세션을 지우고 상태를 비운다', async () => {
-    localStorage.setItem('mafia:session', JSON.stringify({ code: 'ABC234', playerId: 'p1' }));
+    localStorage.setItem('mafia:session', JSON.stringify({
+      code: 'ABC234', resumeToken: 'secret-1',
+    }));
     const socket = makeFakeSocket();
     const { result } = renderGame(socket);
     socket.fire('state:update', { phase: 'WAITING', players: [] });
@@ -161,5 +167,7 @@ describe('useGame — 오류', () => {
 
     await waitFor(() => expect(result.current.view).toBeNull());
     expect(localStorage.getItem('mafia:session')).toBeNull();
+    expect(socket.sent).toContainEqual({ event: 'room:leave', payload: undefined });
+    expect(socket.sent).not.toContainEqual({ event: '__disconnect' });
   });
 });

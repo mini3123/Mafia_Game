@@ -62,4 +62,19 @@ describe('resetToWaiting', () => {
     expect(room.players.map((p) => p.id)).toEqual(before);
     expect(room.hostId).toBe('p1');
   });
+
+  it('게임 중 나간 참가자는 다음 대기실에서 제거한다', () => {
+    const room = endedRoom();
+    room.players[4].connected = false;
+    const departedId = room.players[4].id;
+    resetToWaiting(room);
+    expect(room.players.some((player) => player.id === departedId)).toBe(false);
+  });
+
+  it('나간 방장 대신 연결된 참가자가 방장이 된다', () => {
+    const room = endedRoom();
+    room.players[0].connected = false;
+    resetToWaiting(room);
+    expect(room.hostId).toBe('p2');
+  });
 });

@@ -49,6 +49,15 @@ describe('viewFor — 정보 누출', () => {
     clearTimeout(room.timer);
   });
 
+  it('재접속 비밀 토큰과 소켓 id가 뷰에 새지 않는다', () => {
+    const room = makeRoom(SEVEN, { phase: PHASE.DAY_DISCUSSION });
+    room.players[0].resumeToken = 'resume-secret';
+    room.players[0].socketId = 'socket-secret';
+    const strings = allStrings(viewFor(room, 'p1'));
+    expect(strings).not.toContain('resume-secret');
+    expect(strings).not.toContain('socket-secret');
+  });
+
   it('시민 뷰에는 마피아의 밤 지목이 없다', () => {
     const room = makeRoom(SEVEN, { phase: PHASE.NIGHT });
     submitNightAction(room, idOf(room, ROLE.MAFIA, 0), {

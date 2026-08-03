@@ -3,7 +3,7 @@ import { PHASE } from '../src/game/roles.js';
 import { playerById } from '../src/game/state.js';
 import {
   createRegistry, generateCode, createNewRoom, joinRoom,
-  rejoinRoom, leaveRoom, sweepEmptyRooms, EMPTY_ROOM_TTL_MS,
+  rejoinRoom, leaveRoom, disconnectRoom, sweepEmptyRooms, EMPTY_ROOM_TTL_MS,
 } from '../src/rooms.js';
 import { makeRng } from './helpers.js';
 
@@ -14,7 +14,12 @@ function roomWith(count) {
   for (let i = 2; i <= count; i++) {
     joinRoom(registry, created.room.code, `사람${i}`);
   }
-  return { registry, room: created.room, hostId: created.playerId };
+  return {
+    registry,
+    room: created.room,
+    hostId: created.playerId,
+    hostToken: created.resumeToken,
+  };
 }
 
 describe('generateCode', () => {
@@ -38,12 +43,14 @@ describe('generateCode', () => {
 describe('createNewRoom', () => {
   it('만든 사람이 방장이 되고 첫 참가자가 된다', () => {
     const registry = createRegistry();
-    const { ok, room, playerId } = createNewRoom(registry, '방장');
+    const { ok, room, playerId, resumeToken } = createNewRoom(registry, '방장');
     expect(ok).toBe(true);
     expect(room.hostId).toBe(playerId);
     expect(room.players).toHaveLength(1);
     expect(room.players[0].nickname).toBe('방장');
     expect(room.phase).toBe(PHASE.WAITING);
+    expect(resumeToken).toBeTruthy();
+    expect(resumeToken).not.toBe(playerId);
   });
 
   it('레지스트리에 코드로 등록된다', () => {
@@ -107,10 +114,10 @@ describe('joinRoom', () => {
 
 describe('rejoinRoom', () => {
   it('토큰으로 원래 자리에 다시 붙는다', () => {
-    const { registry, room, hostId } = roomWith(5);
+    const { registry, room, hostId, hostToken } = roomWith(5);
     room.phase = PHASE.NIGHT;
     leaveRoom(registry, room.code, hostId, { now: 0 });
-    const result = rejoinRoom(registry, room.code, hostId);
+    const result = rejoinRoom(registry, room.code, hostToken);
     expect(result.ok).toBe(true);
     expect(playerById(room, hostId).connected).toBe(true);
   });
@@ -119,8 +126,15 @@ describe('rejoinRoom', () => {
     const { registry, room } = roomWith(5);
     room.phase = PHASE.DAY_DISCUSSION;
     const joinerId = room.players[1].id;
+    const joinerToken = room.players[1].resumeToken;
     leaveRoom(registry, room.code, joinerId, { now: 0 });
-    expect(rejoinRoom(registry, room.code, joinerId).ok).toBe(true);
+    expect(rejoinRoom(registry, room.code, joinerToken).ok).toBe(true);
+  });
+
+  it('공개 플레이어 id로는 다른 자리에 재입장할 수 없다', () => {
+    const { registry, room, hostId } = roomWith(5);
+    expect(rejoinRoom(registry, room.code, hostId))
+      .toEqual({ ok: false, code: 'PLAYER_NOT_FOUND' });
   });
 
   it('모르는 토큰을 거부한다', () => {
@@ -131,6 +145,27 @@ describe('rejoinRoom', () => {
   it('없는 방을 거부한다', () => {
     const registry = createRegistry();
     expect(rejoinRoom(registry, 'ZZZZZZ', 'p1')).toEqual({ ok: false, code: 'ROOM_NOT_FOUND' });
+  });
+});
+
+describe('disconnectRoom — 일시적인 연결 끊김', () => {
+  it('대기실에서도 자리를 남겨 새로고침으로 돌아올 수 있다', () => {
+    const { registry, room, hostId, hostToken } = roomWith(3);
+    disconnectRoom(registry, room.code, hostId, { now: 1000 });
+    expect(playerById(room, hostId).connected).toBe(false);
+    expect(rejoinRoom(registry, room.code, hostToken).ok).toBe(true);
+  });
+
+  it('교체된 옛 소켓의 늦은 disconnect는 새 연결을 끊지 않는다', () => {
+    const { registry, room, hostId } = roomWith(3);
+    const player = playerById(room, hostId);
+    player.socketId = 'new-socket';
+    disconnectRoom(registry, room.code, hostId, {
+      now: 1000,
+      expectedSocketId: 'old-socket',
+    });
+    expect(player.connected).toBe(true);
+    expect(player.socketId).toBe('new-socket');
   });
 });
 

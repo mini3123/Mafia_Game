@@ -7,10 +7,13 @@ import { advancePhase } from './game/phases.js';
 import { viewFor } from './game/view.js';
 import { CHANNEL, canSend, recipientsOf } from './game/chat.js';
 import { executionAnnouncement, nightAnnouncement } from './game/announce.js';
-import { createNewRoom, joinRoom, rejoinRoom, leaveRoom } from './rooms.js';
+import {
+  createNewRoom, joinRoom, rejoinRoom, leaveRoom, disconnectRoom, succeedHost,
+} from './rooms.js';
 import { startPhaseTimer, clearPhaseTimer } from './timers.js';
 
 const MAX_MESSAGE_LENGTH = 300;
+const HOST_RECONNECT_GRACE_MS = 3_000;
 
 export function attachSocketServer(io, registry) {
   io.on('connection', (socket) => {
@@ -18,7 +21,12 @@ export function attachSocketServer(io, registry) {
       const result = createNewRoom(registry, nickname);
       if (!result.ok) return respond(ack, result);
       await bind(socket, result.room, result.playerId);
-      respond(ack, { ok: true, code: result.room.code, playerId: result.playerId });
+      respond(ack, {
+        ok: true,
+        code: result.room.code,
+        playerId: result.playerId,
+        resumeToken: result.resumeToken,
+      });
       await broadcastState(io, result.room);
     });
 
@@ -26,17 +34,36 @@ export function attachSocketServer(io, registry) {
       const result = joinRoom(registry, code, nickname);
       if (!result.ok) return respond(ack, result);
       await bind(socket, result.room, result.playerId);
-      respond(ack, { ok: true, code: result.room.code, playerId: result.playerId });
+      respond(ack, {
+        ok: true,
+        code: result.room.code,
+        playerId: result.playerId,
+        resumeToken: result.resumeToken,
+      });
       await broadcastState(io, result.room);
     });
 
-    socket.on('room:rejoin', async ({ code, playerId } = {}, ack) => {
-      const result = rejoinRoom(registry, code, playerId);
+    socket.on('room:rejoin', async ({ code, resumeToken } = {}, ack) => {
+      const result = rejoinRoom(registry, code, resumeToken);
       if (!result.ok) return respond(ack, result);
-      await bind(socket, result.room, playerId);
+      await bind(socket, result.room, result.playerId);
       respond(ack, { ok: true });
-      socket.emit('chat:history', historyFor(result.room, playerId));
+      socket.emit('chat:history', historyFor(result.room, result.playerId));
       await broadcastState(io, result.room);
+    });
+
+    socket.on('room:leave', async (_payload, ack) => {
+      const room = roomOf(registry, socket);
+      if (!room) return respond(ack, { ok: true });
+
+      const code = room.code;
+      if (room.hostId === socket.data.playerId) clearHostTransfer(room);
+      leaveRoom(registry, code, socket.data.playerId, { now: Date.now() });
+      await socket.leave(code);
+      socket.data.code = null;
+      socket.data.playerId = null;
+      respond(ack, { ok: true });
+      await broadcastState(io, room);
     });
 
     socket.on('game:start', async () => {
@@ -129,14 +156,23 @@ export function attachSocketServer(io, registry) {
       // 받을 자격이 있는 소켓에만 보낸다. 유령 메시지는 산 사람에게 전송조차 되지 않는다.
       const allowed = new Set(recipients);
       for (const target of await io.in(room.code).fetchSockets()) {
-        if (allowed.has(target.data.playerId)) target.emit('chat:message', message);
+        const targetPlayer = playerById(room, target.data.playerId);
+        if (targetPlayer?.socketId === target.id && allowed.has(target.data.playerId)) {
+          target.emit('chat:message', message);
+        }
       }
     });
 
     socket.on('disconnect', async () => {
-      const room = roomOf(registry, socket);
+      const room = rawRoomOf(registry, socket);
       if (!room) return;
-      leaveRoom(registry, room.code, socket.data.playerId, { now: Date.now() });
+      const disconnected = disconnectRoom(registry, room.code, socket.data.playerId, {
+        now: Date.now(),
+        expectedSocketId: socket.id,
+      });
+      if (disconnected && room.hostId === socket.data.playerId) {
+        scheduleHostTransfer(io, room);
+      }
       await broadcastState(io, room);
     });
   });
@@ -145,10 +181,39 @@ export function attachSocketServer(io, registry) {
 async function bind(socket, room, playerId) {
   socket.data.code = room.code;
   socket.data.playerId = playerId;
+  const player = playerById(room, playerId);
+  if (player) {
+    if (room.hostId === playerId) clearHostTransfer(room);
+    player.socketId = socket.id;
+    player.connected = true;
+    player.disconnectedAt = null;
+  }
   await socket.join(room.code);
 }
 
+function clearHostTransfer(room) {
+  if (!room.hostTransferTimer) return;
+  clearTimeout(room.hostTransferTimer);
+  room.hostTransferTimer = null;
+}
+
+function scheduleHostTransfer(io, room) {
+  clearHostTransfer(room);
+  room.hostTransferTimer = setTimeout(async () => {
+    room.hostTransferTimer = null;
+    succeedHost(room);
+    await broadcastState(io, room);
+  }, HOST_RECONNECT_GRACE_MS);
+  room.hostTransferTimer.unref?.();
+}
+
 function roomOf(registry, socket) {
+  const room = rawRoomOf(registry, socket);
+  const player = room && playerById(room, socket.data.playerId);
+  return player?.socketId === socket.id ? room : undefined;
+}
+
+function rawRoomOf(registry, socket) {
   return socket.data.code ? registry.rooms.get(socket.data.code) : undefined;
 }
 
@@ -165,7 +230,10 @@ function historyFor(room, playerId) {
 /** 방의 각 소켓에 그 사람 몫의 뷰만 보낸다. */
 async function broadcastState(io, room) {
   for (const socket of await io.in(room.code).fetchSockets()) {
-    if (socket.data.playerId) socket.emit('state:update', viewFor(room, socket.data.playerId));
+    const player = playerById(room, socket.data.playerId);
+    if (player?.socketId === socket.id) {
+      socket.emit('state:update', viewFor(room, socket.data.playerId));
+    }
   }
 }
 
@@ -189,7 +257,8 @@ async function announce(io, room, text) {
   room.chatLog.push({ ...message, recipients });
 
   for (const target of await io.in(room.code).fetchSockets()) {
-    if (target.data.playerId) target.emit('chat:message', message);
+    const player = playerById(room, target.data.playerId);
+    if (player?.socketId === target.id) target.emit('chat:message', message);
   }
 }
 

@@ -56,15 +56,17 @@ async function seatPlayers(count) {
   await once(host, 'connect');
   const created = await emitAck(host, 'room:create', { nickname: '사람1' });
   const code = created.code;
+  const sessions = [created];
 
   const guests = [];
   for (let i = 2; i <= count; i++) {
     const guest = newClient();
     await once(guest, 'connect');
-    await emitAck(guest, 'room:join', { code, nickname: `사람${i}` });
+    const joined = await emitAck(guest, 'room:join', { code, nickname: `사람${i}` });
     guests.push(guest);
+    sessions.push(joined);
   }
-  return { host, guests, code, all: [host, ...guests] };
+  return { host, guests, code, all: [host, ...guests], sessions };
 }
 
 describe('방 만들기와 입장', () => {
@@ -75,6 +77,8 @@ describe('방 만들기와 입장', () => {
     expect(result.ok).toBe(true);
     expect(result.code).toMatch(/^[A-Z2-9]{6}$/);
     expect(result.playerId).toBeTruthy();
+    expect(result.resumeToken).toBeTruthy();
+    expect(result.resumeToken).not.toBe(result.playerId);
   });
 
   it('없는 코드로 들어가면 실패한다', async () => {
@@ -182,8 +186,34 @@ describe('채팅', () => {
 });
 
 describe('재접속', () => {
+  it('대기실을 새로고침해도 원래 자리가 복구된다', async () => {
+    const { guests, code, sessions } = await seatPlayers(3);
+    const playerId = sessions[1].playerId;
+    guests[0].disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const revived = newClient();
+    await once(revived, 'connect');
+    const restored = until(revived, (view) => view.phase === PHASE.WAITING);
+    expect(await emitAck(revived, 'room:rejoin', {
+      code,
+      resumeToken: sessions[1].resumeToken,
+    })).toEqual({ ok: true });
+    expect((await restored).me.id).toBe(playerId);
+  });
+
+  it('공개 플레이어 id로 다른 사람을 가장할 수 없다', async () => {
+    const { code, sessions } = await seatPlayers(3);
+    const attacker = newClient();
+    await once(attacker, 'connect');
+    expect(await emitAck(attacker, 'room:rejoin', {
+      code,
+      resumeToken: sessions[1].playerId,
+    })).toEqual({ ok: false, code: 'PLAYER_NOT_FOUND' });
+  });
+
   it('끊었다 토큰으로 돌아오면 역할과 동료가 복구된다', async () => {
-    const { host, all, code } = await seatPlayers(7);
+    const { host, all, code, sessions } = await seatPlayers(7);
     const room = [...registry.rooms.values()][0];
     const views = all.map((c) => until(c, (v) => v.phase === PHASE.NIGHT));
     host.emit('game:start');
@@ -200,7 +230,7 @@ describe('재접속', () => {
     const revived = newClient();
     await once(revived, 'connect');
     const restored = until(revived, (v) => v.phase === PHASE.NIGHT);
-    await emitAck(revived, 'room:rejoin', { code, playerId });
+    await emitAck(revived, 'room:rejoin', { code, resumeToken: sessions[index].resumeToken });
     const after = await restored;
 
     expect(after.me.role).toBe(ROLE.MAFIA);
@@ -208,7 +238,7 @@ describe('재접속', () => {
   });
 
   it('재접속하면 자기가 받았던 채팅만 복구된다', async () => {
-    const { host, all, code } = await seatPlayers(7);
+    const { host, all, code, sessions } = await seatPlayers(7);
     const views = all.map((c) => until(c, (v) => v.phase === PHASE.NIGHT));
     host.emit('game:start');
     const results = await Promise.all(views);
@@ -224,7 +254,10 @@ describe('재접속', () => {
     const revived = newClient();
     await once(revived, 'connect');
     const historyPromise = once(revived, 'chat:history');
-    await emitAck(revived, 'room:rejoin', { code, playerId: citizenId });
+    await emitAck(revived, 'room:rejoin', {
+      code,
+      resumeToken: sessions[citizenIndex].resumeToken,
+    });
 
     expect(await historyPromise).toEqual([]);
   });

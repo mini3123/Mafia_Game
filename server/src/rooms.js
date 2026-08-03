@@ -35,19 +35,29 @@ function uniqueCode(registry, rng) {
   return code;
 }
 
-export function createNewRoom(registry, rawNickname, { rng = Math.random, newId = randomUUID } = {}) {
+export function createNewRoom(
+  registry,
+  rawNickname,
+  { rng = Math.random, newId = randomUUID, newResumeToken = randomUUID } = {},
+) {
   const nickname = normalizeNickname(rawNickname);
   if (!nickname) return fail('INVALID_NICKNAME');
 
   const playerId = newId();
+  const resumeToken = newResumeToken();
   const room = createRoom(uniqueCode(registry, rng), playerId);
-  addPlayerToRoom(room, { id: playerId, nickname });
+  addPlayerToRoom(room, { id: playerId, nickname, resumeToken });
   registry.rooms.set(room.code, room);
 
-  return { ok: true, room, playerId };
+  return { ok: true, room, playerId, resumeToken };
 }
 
-export function joinRoom(registry, rawCode, rawNickname, { newId = randomUUID } = {}) {
+export function joinRoom(
+  registry,
+  rawCode,
+  rawNickname,
+  { newId = randomUUID, newResumeToken = randomUUID } = {},
+) {
   const room = registry.rooms.get(String(rawCode ?? '').toUpperCase());
   if (!room) return fail('ROOM_NOT_FOUND');
 
@@ -58,20 +68,47 @@ export function joinRoom(registry, rawCode, rawNickname, { newId = randomUUID } 
   if (room.players.some((p) => p.nickname === nickname)) return fail('NICKNAME_TAKEN');
 
   const playerId = newId();
-  addPlayerToRoom(room, { id: playerId, nickname });
-  return { ok: true, room, playerId };
+  const resumeToken = newResumeToken();
+  addPlayerToRoom(room, { id: playerId, nickname, resumeToken });
+  return { ok: true, room, playerId, resumeToken };
 }
 
-export function rejoinRoom(registry, rawCode, playerId) {
+export function rejoinRoom(registry, rawCode, resumeToken) {
   const room = registry.rooms.get(String(rawCode ?? '').toUpperCase());
   if (!room) return fail('ROOM_NOT_FOUND');
 
-  const player = playerById(room, playerId);
+  const player = room.players.find((candidate) =>
+    candidate.resumeToken && candidate.resumeToken === resumeToken);
   if (!player) return fail('PLAYER_NOT_FOUND');
 
   player.connected = true;
+  player.disconnectedAt = null;
   room.emptySince = null;
-  return { ok: true, room };
+  return { ok: true, room, playerId: player.id };
+}
+
+/**
+ * 네트워크 단절은 명시적인 나가기와 다르다. 자리를 남겨 새로고침으로 복구할 수 있게 한다.
+ * expectedSocketId가 현재 연결과 다르면 교체된 옛 소켓의 늦은 disconnect이므로 무시한다.
+ */
+export function disconnectRoom(
+  registry,
+  rawCode,
+  playerId,
+  { now = 0, expectedSocketId = null } = {},
+) {
+  const room = registry.rooms.get(String(rawCode ?? '').toUpperCase());
+  if (!room) return false;
+
+  const player = playerById(room, playerId);
+  if (!player) return false;
+  if (expectedSocketId && player.socketId !== expectedSocketId) return false;
+
+  player.connected = false;
+  player.socketId = null;
+  player.disconnectedAt = now;
+  updateEmptySince(room, now);
+  return true;
 }
 
 /**
@@ -89,15 +126,20 @@ export function leaveRoom(registry, rawCode, playerId, { now = 0 } = {}) {
     room.players = room.players.filter((p) => p.id !== playerId);
   } else {
     player.connected = false;
+    player.socketId = null;
+    player.disconnectedAt = now;
   }
 
   succeedHost(room);
+  updateEmptySince(room, now);
+}
 
+function updateEmptySince(room, now) {
   const anyConnected = room.players.some((p) => p.connected);
   room.emptySince = anyConnected ? null : now;
 }
 
-function succeedHost(room) {
+export function succeedHost(room) {
   const host = playerById(room, room.hostId);
   if (host && host.connected) return;
   const next = room.players.find((p) => p.connected);

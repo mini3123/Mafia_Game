@@ -29,7 +29,7 @@ export function useGame({ createSocket = () => io() } = {}) {
       setConnected(true);
       const session = loadSession();
       // 새로고침 복구: 소켓 id가 아니라 저장해둔 플레이어 토큰으로 원래 자리에 붙는다.
-      if (session?.code && session?.playerId) {
+      if (session?.code && session?.resumeToken) {
         socket.emit('room:rejoin', session, (result) => {
           if (result && result.ok === false) {
             clearSession();
@@ -66,7 +66,7 @@ export function useGame({ createSocket = () => io() } = {}) {
     return new Promise((resolve) => {
       socketRef.current.emit(event, payload, (result) => {
         if (result?.ok) {
-          saveSession({ code: result.code, playerId: result.playerId });
+          saveSession({ code: result.code, resumeToken: result.resumeToken });
         } else {
           setError(result?.code ?? 'UNKNOWN');
         }
@@ -82,11 +82,11 @@ export function useGame({ createSocket = () => io() } = {}) {
   );
 
   const leave = useCallback(() => {
+    socketRef.current.emit('room:leave');
     clearSession();
     setView(null);
     setMessages([]);
     setError(null);
-    socketRef.current.disconnect();
   }, []);
 
   const start = useCallback(() => socketRef.current.emit('game:start'), []);
