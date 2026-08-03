@@ -84,3 +84,33 @@ export function shouldEndNightEarly(room) {
 
   return true;
 }
+
+export function submitNominate(room, playerId, targetId) {
+  if (room.phase !== PHASE.VOTE_NOMINATE) return fail('NOT_NOMINATE_PHASE');
+
+  const voter = playerById(room, playerId);
+  if (!voter || !voter.alive) return fail('NOT_ALIVE');
+
+  if (targetId === null || targetId === undefined) {
+    room.votes[playerId] = null; // 기권
+    return OK;
+  }
+
+  if (targetId === playerId) return fail('SELF_NOT_ALLOWED');
+  const target = playerById(room, targetId);
+  if (!target || !target.alive) return fail('INVALID_TARGET');
+
+  room.votes[playerId] = targetId;
+  return OK;
+}
+
+export function submitJudge(room, playerId, approve) {
+  if (room.phase !== PHASE.VOTE_JUDGE) return fail('NOT_JUDGE_PHASE');
+
+  const voter = playerById(room, playerId);
+  if (!voter || !voter.alive) return fail('NOT_ALIVE');
+  if (playerId === room.nominee) return fail('IS_NOMINEE');
+
+  room.judgeVotes[playerId] = Boolean(approve);
+  return OK;
+}

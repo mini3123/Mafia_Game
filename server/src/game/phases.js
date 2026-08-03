@@ -38,3 +38,38 @@ function pickMafiaTarget(room, rng) {
   const tied = Object.keys(tally).filter((id) => tally[id] === top);
   return tied[Math.floor(rng() * tied.length)];
 }
+
+/** 최다 득표자가 유일할 때만 최후 변론 대상이 된다. 동점이면 그날은 아무도 죽지 않는다. */
+export function tallyNominate(room) {
+  const tally = {};
+  for (const targetId of Object.values(room.votes)) {
+    if (targetId) tally[targetId] = (tally[targetId] ?? 0) + 1;
+  }
+
+  const entries = Object.entries(tally);
+  if (entries.length === 0) {
+    room.nominee = null;
+    return;
+  }
+
+  const top = Math.max(...entries.map(([, count]) => count));
+  const tied = entries.filter(([, count]) => count === top);
+  room.nominee = tied.length === 1 ? tied[0][0] : null;
+}
+
+/** 찬성이 반대보다 많을 때만 처형한다. 동수면 살아남는다. */
+export function tallyJudge(room, { now = 0 } = {}) {
+  const nomineeId = room.nominee;
+  const votes = Object.values(room.judgeVotes);
+  const yes = votes.filter((v) => v === true).length;
+  const no = votes.filter((v) => v === false).length;
+  const executed = yes > no;
+
+  room.lastExecution = { nomineeId, yes, no, executed };
+  room.nominee = null;
+
+  if (executed && nomineeId) {
+    killPlayer(room, nomineeId);
+    checkAndSetVictory(room, now);
+  }
+}
