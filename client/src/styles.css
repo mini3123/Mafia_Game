@@ -150,7 +150,8 @@ button:disabled {
 
 /* 내용은 비네트와 그레인 위에 온다 */
 .lobby,
-.waiting {
+.waiting,
+.game {
   position: relative;
   z-index: 3;
 }
@@ -398,6 +399,177 @@ input:focus {
   letter-spacing: 0.1em;
   color: var(--ink-dim);
   border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 1px 5px;
+  flex: none;
+  font-weight: 400;
+}
+
+/* --- 게임 화면 ----------------------------------------------------------- */
+
+.game {
+  position: relative;
+  z-index: 3;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(var(--step) * 8) calc(var(--step) * 5) calc(var(--step) * 16);
+}
+
+.banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--step) * 4);
+  padding-bottom: calc(var(--step) * 4);
+  border-bottom: 2px solid var(--line);
+  margin-bottom: calc(var(--step) * 5);
+}
+
+.banner__phase {
+  font-family: var(--display);
+  font-size: clamp(32px, 9vw, 46px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.banner__clock {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin: 0;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(30px, 8vw, 42px);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.banner__unit {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.myrole {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--step) * 2);
+  margin: 0 0 calc(var(--step) * 4);
+}
+
+.myrole__label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+}
+
+.myrole__value {
+  font-family: var(--display);
+  font-size: 22px;
+}
+
+.myrole__dead {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--stamp-mafia);
+  border: 1px solid var(--stamp-mafia);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+
+.report {
+  background: var(--raised);
+  border-left: 2px solid var(--ink-dim);
+  padding: calc(var(--step) * 3) calc(var(--step) * 4);
+  margin: 0 0 calc(var(--step) * 5);
+  font-size: 14px;
+}
+
+/* --- 명단 여백 -----------------------------------------------------------
+   이 게임에서 화면이 하는 유일한 일: 같은 명단인데 여백만 사람마다 다르다.
+   ----------------------------------------------------------------------- */
+
+button.seat {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* 고를 게 없을 때는 전부 잠겨 있어도 흐려지면 안 된다 */
+button.seat:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+/* 고르는 중일 때만 밤이 내려앉는다 — 고를 수 있는 사람만 빛을 받는다 */
+.roster--picking button.seat:disabled {
+  opacity: 0.26;
+}
+
+.roster--picking button.seat:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+button.seat[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--ink) 13%, transparent);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.seat--dead .seat__name {
+  color: var(--ink-dim);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.seat__margin {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--step) * 2);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* 나만 아는 것. 호박색은 오직 여기에만. */
+.seat__note {
+  color: var(--lamp);
+  border: 1px solid color-mix(in srgb, var(--lamp) 45%, transparent);
+  border-radius: 2px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.seat__votes {
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.seat__team {
+  border-radius: 2px;
+  padding: 2px 7px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.seat__team--mafia {
+  background: var(--stamp-mafia);
+}
+
+.seat__team--citizen {
+  background: var(--stamp-citizen);
+}
+
+.seat__off {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  border: 1px dashed var(--line);
   border-radius: 2px;
   padding: 1px 5px;
   flex: none;
