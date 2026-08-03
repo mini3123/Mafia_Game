@@ -9,7 +9,7 @@ import { TEAM_LABEL } from '../labels.js';
  */
 export default function Roster({
   players, me, selectableIds = [], selectedId = null,
-  onSelect = () => {}, annotations = {}, voteCounts = {},
+  onSelect = () => {}, annotations = {}, voteCounts = {}, selectedMark = null,
 }) {
   const picking = selectableIds.length > 0;
 
@@ -40,6 +40,7 @@ export default function Roster({
               </span>
 
               <span className="seat__margin">
+                {selectedMark && selectedId === player.id && selectedMark}
                 {votes > 0 && <span className="seat__votes">{votes}표</span>}
                 {!player.alive && (
                   <span className={`seat__team seat__team--${String(player.revealedTeam).toLowerCase()}`}>

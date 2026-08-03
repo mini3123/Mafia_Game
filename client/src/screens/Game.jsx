@@ -1,5 +1,7 @@
 import PhaseBanner from '../components/PhaseBanner.jsx';
 import Roster from '../components/Roster.jsx';
+import ActionPrompt, { ACTION, nightActionFor } from '../components/ActionPrompt.jsx';
+import Scope from '../components/Scope.jsx';
 import { ROLE_LABEL } from '../labels.js';
 import { errorMessage } from '../errors.js';
 
@@ -30,6 +32,7 @@ function nightReport(view) {
 
 export default function Game({ view, game }) {
   const report = view.phase === 'DAY_DISCUSSION' ? nightReport(view) : null;
+  const action = nightActionFor(view);
 
   return (
     <main className="game">
@@ -45,9 +48,22 @@ export default function Game({ view, game }) {
 
       {game.error && <p role="alert" className="error">{errorMessage(game.error)}</p>}
 
-      <Roster players={view.players} me={view.me} annotations={annotationsFor(view)} />
+      <ActionPrompt view={view} />
 
-      {/* 밤 행동은 Task 16, 투표는 Task 17, 채팅은 Task 18에서 붙인다. */}
+      <Roster
+        players={view.players}
+        me={view.me}
+        annotations={annotationsFor(view)}
+        selectableIds={action?.selectableIds ?? []}
+        selectedId={view.myAction?.targetId ?? null}
+        onSelect={(targetId) => action && game.submitAction(action.type, targetId)}
+        /* 마피아가 겨눈 사람에게만 조준선을 얹는다 */
+        selectedMark={
+          action?.type === ACTION.MAFIA_KILL ? <Scope className="seat__scope" /> : null
+        }
+      />
+
+      {/* 투표는 Task 17, 채팅은 Task 18에서 붙인다. */}
     </main>
   );
 }
