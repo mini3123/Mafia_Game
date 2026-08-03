@@ -49,6 +49,8 @@ export function viewFor(room, playerId) {
         ? Object.entries(room.night.mafiaPicks).map(([actorId, targetId]) => ({ actorId, targetId }))
         : [],
 
+    myTimeAdjust: me ? (room.timeAdjustedBy?.[playerId] ?? null) : null,
+
     nominee: room.nominee,
     votes: room.phase === PHASE.VOTE_NOMINATE ? { ...room.votes } : {},
     judgeVotes: room.phase === PHASE.VOTE_JUDGE ? { ...room.judgeVotes } : {},

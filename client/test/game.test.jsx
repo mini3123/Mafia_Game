@@ -54,6 +54,55 @@ describe('PhaseBanner', () => {
   });
 });
 
+describe('PhaseBanner — 시간 조절', () => {
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
+
+  const banner = (props) => {
+    vi.setSystemTime(0);
+    return render(
+      <PhaseBanner phase="DAY_DISCUSSION" day={1} phaseEndsAt={120_000} {...props} />,
+    );
+  };
+
+  it('조절 콜백이 없으면 버튼을 그리지 않는다', () => {
+    banner({});
+    expect(screen.queryByRole('button', { name: '−20초' })).not.toBeInTheDocument();
+  });
+
+  it('단축과 연장 버튼이 나온다', () => {
+    banner({ onAdjust: vi.fn(), canAdjust: true });
+    expect(screen.getByRole('button', { name: '−20초' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '+20초' })).toBeEnabled();
+  });
+
+  it('단축을 누르면 SHORTEN을 보낸다', async () => {
+    const onAdjust = vi.fn();
+    banner({ onAdjust, canAdjust: true });
+    await userEvent.click(screen.getByRole('button', { name: '−20초' }));
+    expect(onAdjust).toHaveBeenCalledWith('SHORTEN');
+  });
+
+  it('연장을 누르면 EXTEND를 보낸다', async () => {
+    const onAdjust = vi.fn();
+    banner({ onAdjust, canAdjust: true });
+    await userEvent.click(screen.getByRole('button', { name: '+20초' }));
+    expect(onAdjust).toHaveBeenCalledWith('EXTEND');
+  });
+
+  it('이미 썼으면 버튼이 잠기고 쓴 쪽이 표시된다', () => {
+    banner({ onAdjust: vi.fn(), canAdjust: false, myAdjust: 'SHORTEN' });
+    expect(screen.getByRole('button', { name: '−20초' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '−20초' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '+20초' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('시간이 없는 페이즈에는 버튼이 없다', () => {
+    render(<PhaseBanner phase="ENDED" day={3} phaseEndsAt={null} onAdjust={vi.fn()} canAdjust />);
+    expect(screen.queryByRole('button', { name: '−20초' })).not.toBeInTheDocument();
+  });
+});
+
 describe('Roster', () => {
   const base = {
     players, me, selectableIds: [], selectedId: null,

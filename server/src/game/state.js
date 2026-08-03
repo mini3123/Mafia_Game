@@ -10,6 +10,7 @@ export function createRoom(code, hostId) {
     phase: PHASE.WAITING,
     day: 0,
     phaseEndsAt: null,
+    timeAdjustedBy: {},
     players: [],
     night: emptyNight(),
     policeResults: [],
@@ -75,6 +76,8 @@ export function setPhase(room, phase, now) {
   room.phase = phase;
   const duration = PHASE_DURATION_MS[phase];
   room.phaseEndsAt = duration ? now + duration : null;
+  // 시간 조절권은 페이즈마다 새로 주어진다.
+  room.timeAdjustedBy = {};
 }
 
 export function playerById(room, playerId) {

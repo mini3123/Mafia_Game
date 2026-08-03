@@ -103,6 +103,10 @@ export function useGame({ createSocket = () => io() } = {}) {
     (approve) => socketRef.current.emit('vote:judge', { approve }),
     [],
   );
+  const adjustTime = useCallback(
+    (direction) => socketRef.current.emit('time:adjust', { direction }),
+    [],
+  );
   const sendChat = useCallback((channel, text) => {
     const body = String(text ?? '').trim();
     if (!body) return;
@@ -112,6 +116,6 @@ export function useGame({ createSocket = () => io() } = {}) {
   return {
     connected, view, messages, error,
     createRoom, joinRoom, leave,
-    start, restart, submitAction, nominate, judge, sendChat,
+    start, restart, submitAction, nominate, judge, adjustTime, sendChat,
   };
 }

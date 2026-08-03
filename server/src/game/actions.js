@@ -1,5 +1,10 @@
-import { ROLE, PHASE } from './roles.js';
+import { ROLE, PHASE, PHASE_DURATION_MS } from './roles.js';
 import { playerById, alivePlayers } from './state.js';
+
+/** 한 사람이 한 페이즈에 움직일 수 있는 시간. */
+export const TIME_STEP_MS = 20_000;
+/** 아무리 줄여도 이만큼은 남긴다. */
+export const MIN_REMAINING_MS = 5_000;
 
 export const ACTION = {
   MAFIA_KILL: 'MAFIA_KILL',
@@ -101,6 +106,28 @@ export function submitNominate(room, playerId, targetId) {
   if (!target || !target.alive) return fail('INVALID_TARGET');
 
   room.votes[playerId] = targetId;
+  return OK;
+}
+
+/**
+ * 페이즈 시간을 20초 늘리거나 줄인다. 한 사람이 한 페이즈에 한 번만.
+ * 인원이 많을수록 크게 움직일 수 있지만, 바닥(5초)과 천장(기본 시간의 두 배)이 있다.
+ */
+export function adjustPhaseTime(room, playerId, direction, { now = 0 } = {}) {
+  if (direction !== 'EXTEND' && direction !== 'SHORTEN') return fail('INVALID_ADJUST');
+  if (!room.phaseEndsAt) return fail('NOT_TIMED_PHASE');
+
+  const player = playerById(room, playerId);
+  if (!player || !player.alive) return fail('NOT_ALIVE');
+  if (room.timeAdjustedBy[playerId]) return fail('ALREADY_ADJUSTED');
+
+  const delta = direction === 'EXTEND' ? TIME_STEP_MS : -TIME_STEP_MS;
+  const base = PHASE_DURATION_MS[room.phase] ?? 0;
+  const floor = now + MIN_REMAINING_MS;
+  const ceiling = now + base * 2;
+
+  room.phaseEndsAt = Math.min(Math.max(room.phaseEndsAt + delta, floor), ceiling);
+  room.timeAdjustedBy[playerId] = direction;
   return OK;
 }
 

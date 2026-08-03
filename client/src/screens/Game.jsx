@@ -49,7 +49,15 @@ export default function Game({ view, messages, game }) {
 
   return (
     <main className="game">
-      <PhaseBanner phase={view.phase} day={view.day} phaseEndsAt={view.phaseEndsAt} />
+      <PhaseBanner
+        phase={view.phase}
+        day={view.day}
+        phaseEndsAt={view.phaseEndsAt}
+        onAdjust={game.adjustTime}
+        myAdjust={view.myTimeAdjust}
+        /* 살아있는 사람만, 한 페이즈에 한 번 */
+        canAdjust={Boolean(view.me?.alive) && !view.myTimeAdjust}
+      />
 
       <p className="myrole">
         <span className="myrole__label">내 역할</span>

@@ -1,11 +1,12 @@
 import { PHASE } from './game/roles.js';
 import { startGame, playerById, resetToWaiting } from './game/state.js';
 import {
-  submitNightAction, submitNominate, submitJudge, shouldEndNightEarly,
+  submitNightAction, submitNominate, submitJudge, shouldEndNightEarly, adjustPhaseTime,
 } from './game/actions.js';
 import { advancePhase } from './game/phases.js';
 import { viewFor } from './game/view.js';
-import { canSend, recipientsOf } from './game/chat.js';
+import { CHANNEL, canSend, recipientsOf } from './game/chat.js';
+import { executionAnnouncement, nightAnnouncement } from './game/announce.js';
 import { createNewRoom, joinRoom, rejoinRoom, leaveRoom } from './rooms.js';
 import { startPhaseTimer, clearPhaseTimer } from './timers.js';
 
@@ -72,6 +73,20 @@ export function attachSocketServer(io, registry) {
       if (!result.ok) return socket.emit('error', { code: result.code });
 
       if (shouldEndNightEarly(room)) return advanceAndBroadcast(io, room);
+      await broadcastState(io, room);
+    });
+
+    socket.on('time:adjust', async ({ direction } = {}) => {
+      const room = roomOf(registry, socket);
+      if (!room) return;
+
+      const result = adjustPhaseTime(room, socket.data.playerId, direction, { now: Date.now() });
+      if (!result.ok) return socket.emit('error', { code: result.code });
+
+      schedulePhase(io, room); // 바뀐 종료 시각으로 타이머를 다시 건다
+      const who = playerById(room, socket.data.playerId).nickname;
+      const what = direction === 'EXTEND' ? '늘렸' : '줄였';
+      await announce(io, room, `${who}님이 시간을 20초 ${what}습니다.`);
       await broadcastState(io, room);
     });
 
@@ -160,8 +175,35 @@ function schedulePhase(io, room) {
   startPhaseTimer(room, () => advanceAndBroadcast(io, room), { now: Date.now() });
 }
 
-function advanceAndBroadcast(io, room) {
+/** 시스템 알림. 전원이 받고, 채팅 기록에도 남아 재접속 시 복구된다. */
+async function announce(io, room, text) {
+  const message = {
+    channel: CHANNEL.PUBLIC,
+    system: true,
+    senderId: null,
+    senderName: null,
+    text,
+    at: Date.now(),
+  };
+  const recipients = room.players.map((p) => p.id);
+  room.chatLog.push({ ...message, recipients });
+
+  for (const target of await io.in(room.code).fetchSockets()) {
+    if (target.data.playerId) target.emit('chat:message', message);
+  }
+}
+
+async function advanceAndBroadcast(io, room) {
+  const from = room.phase;
   advancePhase(room, { now: Date.now() });
   schedulePhase(io, room);
-  return broadcastState(io, room);
+
+  // 밤이 끝나면 사망 결과를, 찬반 투표가 끝나면 처형 결과를 채팅에 남긴다.
+  const text =
+    from === PHASE.NIGHT ? nightAnnouncement(room)
+      : from === PHASE.VOTE_JUDGE ? executionAnnouncement(room)
+        : null;
+  if (text) await announce(io, room, text);
+
+  await broadcastState(io, room);
 }

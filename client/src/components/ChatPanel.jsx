@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CHANNEL_LABEL } from '../labels.js';
 
 /**
@@ -25,6 +25,29 @@ export function canSendHere(view, channel) {
   return false;
 }
 
+/**
+ * 연달아 말한 것은 한 덩어리로 묶는다. 같은 이름이 세 줄 연속 반복되면
+ * 읽는 눈이 이름만 훑게 되어 정작 내용이 안 들어온다.
+ */
+function groupMessages(messages) {
+  const groups = [];
+  for (const message of messages) {
+    const last = groups[groups.length - 1];
+    if (!message.system && last && !last.system && last.senderId === message.senderId) {
+      last.texts.push(message.text);
+    } else {
+      groups.push({
+        system: Boolean(message.system),
+        senderId: message.senderId,
+        senderName: message.senderName,
+        at: message.at,
+        texts: [message.text],
+      });
+    }
+  }
+  return groups;
+}
+
 export default function ChatPanel({ view, messages, onSend }) {
   const channels = view.availableChannels ?? ['PUBLIC'];
   const [channel, setChannel] = useState(channels[0]);
@@ -36,7 +59,17 @@ export default function ChatPanel({ view, messages, onSend }) {
     if (!channels.includes(channel)) setChannel(channels[0]);
   }, [channels, channel]);
 
-  const shown = messages.filter((m) => m.channel === channel);
+  const shown = useMemo(
+    () => messages.filter((m) => m.channel === channel),
+    [messages, channel],
+  );
+  const groups = useMemo(() => groupMessages(shown), [shown]);
+
+  // 자리 번호로 서로를 부르므로 채팅에도 번호를 붙인다.
+  const seatOf = useMemo(
+    () => new Map(view.players.map((p, index) => [p.id, index + 1])),
+    [view.players],
+  );
 
   // 채팅 상자 안에서만 내린다. scrollIntoView를 쓰면 페이지 전체가 튄다.
   useEffect(() => {
@@ -72,13 +105,28 @@ export default function ChatPanel({ view, messages, onSend }) {
       </div>
 
       <ol className="chat__log" ref={logRef}>
-        {shown.length === 0 && <li className="chat__empty">아직 오간 말이 없습니다.</li>}
-        {shown.map((m, index) => (
-          <li key={`${m.at}-${index}`} className="chat__line">
-            <span className="chat__who">{m.senderName}</span>
-            <span className="chat__what">{m.text}</span>
-          </li>
-        ))}
+        {groups.length === 0 && <li className="chat__empty">아직 오간 말이 없습니다.</li>}
+
+        {groups.map((group, index) =>
+          group.system ? (
+            <li key={`${group.at}-${index}`} className="chat__system">
+              {group.texts[0]}
+            </li>
+          ) : (
+            <li
+              key={`${group.at}-${index}`}
+              className={`chat__group${group.senderId === view.me?.id ? ' chat__group--mine' : ''}`}
+            >
+              <p className="chat__who">
+                <span className="chat__seat">{String(seatOf.get(group.senderId) ?? '?')}</span>
+                <span className="chat__name">{group.senderName}</span>
+              </p>
+              {group.texts.map((text, i) => (
+                <p key={i} className="chat__what">{text}</p>
+              ))}
+            </li>
+          ),
+        )}
       </ol>
 
       <form onSubmit={submit} className="chat__form">

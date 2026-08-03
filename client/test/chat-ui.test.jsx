@@ -8,6 +8,8 @@ function view(phase, overrides = {}) {
     phase, day: 1, nominee: null,
     players: [
       { id: 'p1', nickname: '가', alive: true, connected: true, isHost: true, revealedTeam: null },
+      { id: 'p2', nickname: '나', alive: true, connected: true, isHost: false, revealedTeam: null },
+      { id: 'p3', nickname: '다', alive: true, connected: true, isHost: false, revealedTeam: null },
     ],
     me: {
       id: 'p1', role: 'CITIZEN', alive: true,
@@ -127,5 +129,75 @@ describe('ChatPanel', () => {
   it('메시지가 없으면 빈 화면을 안내한다', () => {
     render(<ChatPanel view={view('DAY_DISCUSSION')} messages={[]} onSend={vi.fn()} />);
     expect(screen.getByText(/아직 오간 말이 없습니다/)).toBeInTheDocument();
+  });
+});
+
+describe('ChatPanel — 가독성', () => {
+  it('보낸 사람 옆에 자리 번호를 붙인다 — 사람들은 번호로 부른다', () => {
+    const msgs = [{ channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '안녕', at: 1 }];
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={msgs} onSend={vi.fn()} />);
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('나')).toBeInTheDocument();
+  });
+
+  it('같은 사람이 연달아 말하면 이름을 한 번만 보여준다', () => {
+    const msgs = [
+      { channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '첫째', at: 1 },
+      { channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '둘째', at: 2 },
+      { channel: 'PUBLIC', senderId: 'p3', senderName: '다', text: '셋째', at: 3 },
+    ];
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={msgs} onSend={vi.fn()} />);
+    expect(screen.getAllByText('나')).toHaveLength(1);
+    expect(screen.getByText('첫째')).toBeInTheDocument();
+    expect(screen.getByText('둘째')).toBeInTheDocument();
+    expect(screen.getByText('다')).toBeInTheDocument();
+  });
+
+  it('사이에 다른 사람이 끼면 이름을 다시 보여준다', () => {
+    const msgs = [
+      { channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '하나', at: 1 },
+      { channel: 'PUBLIC', senderId: 'p3', senderName: '다', text: '둘', at: 2 },
+      { channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '셋', at: 3 },
+    ];
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={msgs} onSend={vi.fn()} />);
+    expect(screen.getAllByText('나')).toHaveLength(2);
+  });
+
+  it('내 말은 따로 표시한다', () => {
+    const msgs = [{ channel: 'PUBLIC', senderId: 'p1', senderName: '가', text: '내말', at: 1 }];
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={msgs} onSend={vi.fn()} />);
+    expect(screen.getByText('내말').closest('li')).toHaveClass('chat__group--mine');
+  });
+});
+
+describe('ChatPanel — 시스템 알림', () => {
+  const systemMessage = {
+    channel: 'PUBLIC', system: true, senderId: null, senderName: null,
+    text: '나님이 처형되었습니다. 시민이었습니다.', at: 5,
+  };
+
+  it('시스템 알림을 보여준다', () => {
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={[systemMessage]} onSend={vi.fn()} />);
+    expect(screen.getByText(/처형되었습니다. 시민이었습니다/)).toBeInTheDocument();
+  });
+
+  it('시스템 알림에는 보낸 사람이 없다', () => {
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={[systemMessage]} onSend={vi.fn()} />);
+    const line = screen.getByText(/처형되었습니다/).closest('li');
+    expect(line).toHaveClass('chat__system');
+    expect(line.querySelector('.chat__who')).toBeNull();
+  });
+
+  it('사람 말과 섞여도 순서가 유지된다', () => {
+    const msgs = [
+      { channel: 'PUBLIC', senderId: 'p2', senderName: '나', text: '앞말', at: 1 },
+      systemMessage,
+      { channel: 'PUBLIC', senderId: 'p3', senderName: '다', text: '뒷말', at: 9 },
+    ];
+    render(<ChatPanel view={view('DAY_DISCUSSION')} messages={msgs} onSend={vi.fn()} />);
+    const texts = [...screen.getByRole('list').querySelectorAll('li')].map((li) => li.textContent);
+    expect(texts[0]).toContain('앞말');
+    expect(texts[1]).toContain('처형되었습니다');
+    expect(texts[2]).toContain('뒷말');
   });
 });
