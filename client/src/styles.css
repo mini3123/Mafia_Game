@@ -136,6 +136,193 @@ hr {
   color: #f0a0ad;
 }
 
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+  margin: 0 0 calc(var(--step) * 2);
+}
+
+.title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(56px, 16vw, 84px);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+/* --- 입력 --------------------------------------------------------------- */
+
+.field {
+  margin: calc(var(--step) * 5) 0 calc(var(--step) * 2);
+}
+
+.field label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  margin-bottom: calc(var(--step) * 2);
+}
+
+input {
+  width: 100%;
+  padding: 11px 13px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color 120ms ease;
+}
+
+input::placeholder {
+  color: color-mix(in srgb, var(--ink-dim) 70%, transparent);
+}
+
+input:focus {
+  border-color: var(--ink-dim);
+}
+
+.input--code {
+  font-family: var(--mono);
+  font-size: 20px;
+  letter-spacing: 0.35em;
+  text-align: center;
+  text-transform: uppercase;
+  padding-left: 0.35em; /* 자간이 만든 오른쪽 여백을 상쇄 */
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  margin-top: calc(var(--step) * 2);
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 88%, var(--surface));
+}
+
+.btn--quiet {
+  border-color: transparent;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+
+/* --- 로비 --------------------------------------------------------------- */
+
+.lobby,
+.waiting {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: calc(var(--step) * 14) calc(var(--step) * 6) calc(var(--step) * 12);
+}
+
+.lobby__head {
+  margin-bottom: calc(var(--step) * 8);
+}
+
+.lobby__premise {
+  font-family: var(--display);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+  margin: calc(var(--step) * 4) 0 0;
+}
+
+.lobby__or {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--step) * 3);
+  margin: calc(var(--step) * 7) 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+}
+
+.lobby__or::before,
+.lobby__or::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+/* --- 대기실 ------------------------------------------------------------- */
+
+.waiting__head {
+  text-align: center;
+  margin-bottom: calc(var(--step) * 8);
+}
+
+.roomcode {
+  display: block;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: clamp(38px, 13vw, 60px);
+  letter-spacing: 0.18em;
+  padding-left: 0.18em; /* 자간 상쇄 */
+}
+
+.eyebrow--count {
+  margin-bottom: calc(var(--step) * 2);
+}
+
+/* --- 명단 ---------------------------------------------------------------
+   한국 마피아는 3번, 5번처럼 자리 번호로 부른다. 번호가 곧 호칭이라
+   장식이 아니라 정보다. 그래서 고정폭으로 또렷하게 박는다.
+   ----------------------------------------------------------------------- */
+
+.roster {
+  list-style: none;
+  margin: 0 0 calc(var(--step) * 6);
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.seat {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr auto;
+  align-items: center;
+  gap: calc(var(--step) * 3);
+  padding: 11px calc(var(--step) * 2);
+  border-bottom: 1px solid var(--line);
+}
+
+.seat__no {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+}
+
+.seat__name {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--step) * 2);
+  min-width: 0;
+}
+
+.seat__you,
+.seat__host {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 1px 5px;
+  flex: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
