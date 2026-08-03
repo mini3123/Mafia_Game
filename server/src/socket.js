@@ -1,5 +1,5 @@
 import { PHASE } from './game/roles.js';
-import { startGame, playerById } from './game/state.js';
+import { startGame, playerById, resetToWaiting } from './game/state.js';
 import {
   submitNightAction, submitNominate, submitJudge, shouldEndNightEarly,
 } from './game/actions.js';
@@ -50,6 +50,17 @@ export function attachSocketServer(io, registry) {
         return socket.emit('error', { code: 'BAD_PLAYER_COUNT' });
       }
       schedulePhase(io, room);
+      await broadcastState(io, room);
+    });
+
+    socket.on('game:restart', async () => {
+      const room = roomOf(registry, socket);
+      if (!room) return;
+      if (socket.data.playerId !== room.hostId) return socket.emit('error', { code: 'NOT_HOST' });
+      if (room.phase !== PHASE.ENDED) return socket.emit('error', { code: 'NOT_ENDED' });
+
+      clearPhaseTimer(room);
+      resetToWaiting(room);
       await broadcastState(io, room);
     });
 

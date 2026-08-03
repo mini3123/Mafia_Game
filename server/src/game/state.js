@@ -98,3 +98,27 @@ export function killPlayer(room, playerId) {
   player.alive = false;
   player.revealedTeam = player.role === ROLE.MAFIA ? 'MAFIA' : 'CITIZEN';
 }
+
+/** 게임을 끝낸 방을 대기실로 되돌린다. 참가자와 방장은 유지한다. */
+export function resetToWaiting(room) {
+  for (const player of room.players) {
+    player.role = null;
+    player.alive = true;
+    player.revealedTeam = null;
+  }
+  room.day = 0;
+  room.night = emptyNight();
+  room.policeResults = [];
+  room.spyKnownJobs = {};
+  room.spyContacted = false;
+  room.spyContactedOnDay = null;
+  room.votes = {};
+  room.judgeVotes = {};
+  room.nominee = null;
+  room.lastNightResult = null;
+  room.lastExecution = null;
+  room.result = null;
+  room.chatLog = [];
+  room.phase = PHASE.WAITING;
+  room.phaseEndsAt = null;
+}

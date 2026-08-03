@@ -784,6 +784,50 @@ button.seat[aria-pressed='true'] {
   border: 0;
 }
 
+/* --- 결과 --------------------------------------------------------------- */
+
+.result {
+  position: relative;
+  z-index: 3;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: calc(var(--step) * 12) calc(var(--step) * 6) calc(var(--step) * 14);
+}
+
+.result__head {
+  padding-bottom: calc(var(--step) * 6);
+  margin-bottom: calc(var(--step) * 8);
+  border-bottom: 3px solid var(--line);
+}
+
+.result__head--mafia {
+  border-bottom-color: var(--stamp-mafia);
+}
+
+.result__head--citizen {
+  border-bottom-color: var(--stamp-citizen);
+}
+
+.result__winner {
+  font-family: var(--display);
+  font-size: clamp(46px, 14vw, 68px);
+  line-height: 0.94;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.result__verdict {
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  margin: calc(var(--step) * 3) 0 0;
+}
+
+.result .roster {
+  margin-bottom: calc(var(--step) * 8);
+}
+
 /* --- 등장 --------------------------------------------------------------- */
 
 @keyframes rise {
