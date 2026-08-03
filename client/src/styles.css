@@ -2,31 +2,31 @@
    마피아 — 디자인 토큰
 
    원칙 하나만 기억하면 된다:
-   호박색(--lamp)은 "나만 아는 것"에만 쓴다. 다른 어디에도 쓰지 않는다.
+   호박색(--lamp)은 나만 아는 것에만 쓴다. 다른 어디에도 쓰지 않는다.
    그래서 화면에 호박색이 보이면, 그건 남들에게는 안 보이는 정보다.
    =========================================================================== */
 
 :root {
-  /* 밤 — 잉크빛 남색. 검정이 아니다. 사람들이 깨어서 속삭이는 방이다. */
-  --night: #131628;
-  --night-raised: #1d2138;
-  --night-line: #2a2f4a;
-  --night-ink: #e6e7f0;
-  --night-ink-dim: #7c82a0;
+  /* 밤 — 거의 검정. 다만 완전한 검정이 아니라 푸른 기가 남아 있다. */
+  --night: #07080d;
+  --night-raised: #101320;
+  --night-line: #1e2233;
+  --night-ink: #e8e9f2;
+  --night-ink-dim: #6e7490;
 
   /* 낮 — 복사한 사건 기록 같은 회백색. 크림색이 아니다. */
-  --day: #e4e5e0;
-  --day-raised: #f1f1ed;
-  --day-line: #c9cac3;
-  --day-ink: #16171c;
-  --day-ink-dim: #5c5f6b;
+  --day: #dcddd6;
+  --day-raised: #ecece7;
+  --day-line: #bcbdb5;
+  --day-ink: #14151a;
+  --day-ink-dim: #555863;
 
   /* 등불 — 내가 든 불빛. 나만 아는 것에만 쓴다. */
-  --lamp: #e8a33d;
+  --lamp: #f0a93c;
 
   /* 도장 — 사망자 진영 공개에만 쓴다. */
-  --stamp-mafia: #8c2233;
-  --stamp-citizen: #3d5a80;
+  --stamp-mafia: #a52639;
+  --stamp-citizen: #4a6b96;
 
   /* 기본은 밤. 페이즈에 따라 .stage에서 바꾼다. */
   --surface: var(--night);
@@ -35,8 +35,8 @@
   --ink: var(--night-ink);
   --ink-dim: var(--night-ink-dim);
 
-  --display: 'Gowun Batang', 'Nanum Myeongjo', serif;
-  --body: 'IBM Plex Sans KR', system-ui, sans-serif;
+  --display: 'Black Han Sans', sans-serif;
+  --body: 'Gothic A1', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --step: 4px;
@@ -57,7 +57,7 @@ body {
   color: var(--night-ink);
   font-family: var(--body);
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -72,16 +72,21 @@ button {
   border: 1px solid var(--line);
   background: transparent;
   border-radius: var(--radius);
-  padding: 10px 16px;
-  transition: background-color 120ms ease, border-color 120ms ease;
+  padding: 11px 16px;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
 button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 28%, var(--line));
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:disabled {
-  opacity: 0.35;
+  opacity: 0.32;
   cursor: not-allowed;
 }
 
@@ -90,21 +95,40 @@ button:disabled {
   outline-offset: 2px;
 }
 
-hr {
-  border: 0;
-  border-top: 1px solid var(--line);
-  margin: calc(var(--step) * 6) 0;
-}
-
-/* --- 페이즈별 무대 -------------------------------------------------------
+/* --- 무대와 공기 ---------------------------------------------------------
    밤과 낮은 색만 바뀌는 게 아니라 빛의 양이 바뀐다.
+   비네트와 필름 그레인이 평평함을 걷어낸다.
    ----------------------------------------------------------------------- */
 
 .stage {
+  position: relative;
   min-height: 100vh;
   background: var(--surface);
   color: var(--ink);
-  transition: background-color 600ms ease, color 600ms ease;
+  overflow-x: hidden;
+  transition: background-color 700ms ease, color 700ms ease;
+}
+
+/* 비네트 — 가장자리로 갈수록 어두워진다 */
+.stage::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 70% at 50% 28%, transparent 20%, rgba(0, 0, 0, 0.62) 100%);
+  transition: opacity 700ms ease;
+}
+
+/* 필름 그레인 — 아주 옅게. 매끈한 단색이 주는 밋밋함을 없앤다. */
+.stage::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .stage[data-daylight='true'] {
@@ -115,7 +139,67 @@ hr {
   --ink-dim: var(--day-ink-dim);
 }
 
-/* --- 공통 조각 ---------------------------------------------------------- */
+.stage[data-daylight='true']::before {
+  opacity: 0.25;
+}
+
+.stage[data-daylight='true']::after {
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+}
+
+/* 내용은 비네트와 그레인 위에 온다 */
+.lobby,
+.waiting {
+  position: relative;
+  z-index: 3;
+}
+
+/* --- 활자 ---------------------------------------------------------------- */
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  margin: 0 0 calc(var(--step) * 2);
+}
+
+.title {
+  font-family: var(--display);
+  margin: 0;
+  line-height: 0.86;
+  letter-spacing: -0.02em;
+}
+
+.title__pre {
+  display: block;
+  font-size: clamp(22px, 7vw, 30px);
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+  margin-bottom: calc(var(--step) * 2);
+}
+
+.title__main {
+  display: block;
+  font-size: clamp(76px, 24vw, 116px);
+}
+
+/* 아 자의 동그라미를 과녁으로 쓴다 */
+.title__target {
+  position: relative;
+  display: inline-block;
+}
+
+.title__scope {
+  position: absolute;
+  left: -0.055em;
+  top: 0.135em;
+  width: 0.72em;
+  height: 0.72em;
+  color: var(--ink);
+  pointer-events: none;
+}
 
 .hint {
   color: var(--ink-dim);
@@ -124,33 +208,34 @@ hr {
 }
 
 .error {
-  color: var(--stamp-mafia);
-  background: color-mix(in srgb, var(--stamp-mafia) 12%, transparent);
+  color: #ff9aab;
+  background: color-mix(in srgb, var(--stamp-mafia) 18%, transparent);
   border-left: 2px solid var(--stamp-mafia);
   padding: calc(var(--step) * 2) calc(var(--step) * 3);
   font-size: 14px;
   margin: calc(var(--step) * 4) 0;
 }
 
-.stage[data-daylight='false'] .error {
-  color: #f0a0ad;
+.stage[data-daylight='true'] .error {
+  color: var(--stamp-mafia);
 }
 
-.eyebrow {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  color: var(--ink-dim);
-  margin: 0 0 calc(var(--step) * 2);
+/* --- 리볼버 -------------------------------------------------------------- */
+
+.revolver {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
-.title {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(56px, 16vw, 84px);
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-  margin: 0;
+/* 총이 총으로 보여야 한다. 잘라내거나 확대하지 않고 온전히 보여준다.
+   총구가 제목을 겨누도록 바짝 붙인다. */
+.lobby__gun {
+  width: 112%;
+  margin: 0 0 calc(var(--step) * -3) -6%;
+  opacity: 0.85;
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 20px 38px rgba(0, 0, 0, 0.75));
 }
 
 /* --- 입력 --------------------------------------------------------------- */
@@ -163,31 +248,31 @@ hr {
   display: block;
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--ink-dim);
   margin-bottom: calc(var(--step) * 2);
 }
 
 input {
   width: 100%;
-  padding: 11px 13px;
-  background: transparent;
+  padding: 12px 13px;
+  background: var(--raised);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  transition: border-color 120ms ease;
+  transition: border-color 140ms ease;
 }
 
 input::placeholder {
-  color: color-mix(in srgb, var(--ink-dim) 70%, transparent);
+  color: color-mix(in srgb, var(--ink-dim) 72%, transparent);
 }
 
 input:focus {
-  border-color: var(--ink-dim);
+  border-color: color-mix(in srgb, var(--ink) 40%, var(--line));
 }
 
 .input--code {
   font-family: var(--mono);
-  font-size: 20px;
+  font-size: 21px;
   letter-spacing: 0.35em;
   text-align: center;
   text-transform: uppercase;
@@ -204,11 +289,11 @@ input:focus {
   background: var(--ink);
   color: var(--surface);
   border-color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--ink) 88%, var(--surface));
+  background: color-mix(in srgb, var(--ink) 86%, var(--surface));
 }
 
 .btn--quiet {
@@ -223,19 +308,12 @@ input:focus {
 .waiting {
   max-width: 400px;
   margin: 0 auto;
-  padding: calc(var(--step) * 14) calc(var(--step) * 6) calc(var(--step) * 12);
+  padding: calc(var(--step) * 10) calc(var(--step) * 6) calc(var(--step) * 14);
 }
 
-.lobby__head {
-  margin-bottom: calc(var(--step) * 8);
-}
-
-.lobby__premise {
-  font-family: var(--display);
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--ink-dim);
-  margin: calc(var(--step) * 4) 0 0;
+.lobby__hero {
+  padding-top: calc(var(--step) * 8);
+  margin-bottom: calc(var(--step) * 10);
 }
 
 .lobby__or {
@@ -245,7 +323,7 @@ input:focus {
   margin: calc(var(--step) * 7) 0 0;
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--ink-dim);
 }
 
@@ -270,6 +348,7 @@ input:focus {
   font-size: clamp(38px, 13vw, 60px);
   letter-spacing: 0.18em;
   padding-left: 0.18em; /* 자간 상쇄 */
+  text-shadow: 0 0 30px color-mix(in srgb, var(--ink) 22%, transparent);
 }
 
 .eyebrow--count {
@@ -293,7 +372,7 @@ input:focus {
   grid-template-columns: 1.75rem 1fr auto;
   align-items: center;
   gap: calc(var(--step) * 3);
-  padding: 11px calc(var(--step) * 2);
+  padding: 12px calc(var(--step) * 2);
   border-bottom: 1px solid var(--line);
 }
 
@@ -309,6 +388,7 @@ input:focus {
   align-items: baseline;
   gap: calc(var(--step) * 2);
   min-width: 0;
+  font-weight: 500;
 }
 
 .seat__you,
@@ -321,6 +401,44 @@ input:focus {
   border-radius: 2px;
   padding: 1px 5px;
   flex: none;
+  font-weight: 400;
+}
+
+/* --- 등장 --------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 총을 뽑아 드는 동작 — 오른쪽에서 미끄러져 들어온다 */
+@keyframes drawGun {
+  from {
+    opacity: 0;
+    transform: rotate(-4deg) translateX(44px);
+  }
+  to {
+    opacity: 0.85;
+    transform: rotate(-4deg);
+  }
+}
+
+.lobby__gun {
+  animation: drawGun 820ms cubic-bezier(0.16, 0.84, 0.34, 1) both;
+}
+
+.lobby__hero .title__pre {
+  animation: rise 560ms ease-out 300ms both;
+}
+
+.lobby__hero .title__main {
+  animation: rise 560ms ease-out 400ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {

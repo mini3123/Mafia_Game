@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Revolver from '../components/Revolver.jsx';
+import Scope from '../components/Scope.jsx';
 import { errorMessage } from '../errors.js';
 
 export default function Lobby({ onCreate, onJoin, error }) {
@@ -11,12 +13,18 @@ export default function Lobby({ onCreate, onJoin, error }) {
 
   return (
     <main className="lobby">
-      <header className="lobby__head">
-        <p className="eyebrow">5–12명 · 텍스트 토론</p>
-        <h1 className="title">마피아</h1>
-        <p className="lobby__premise">
-          모두가 같은 명단을 봅니다. 다만 각자 아는 것이 다릅니다.
-        </p>
+      <header className="lobby__hero">
+        <Revolver className="lobby__gun" />
+        <h1 className="title">
+          <span className="title__pre">아진</span>
+          <span className="title__main">
+            마피
+            <span className="title__target">
+              아
+              <Scope className="title__scope" />
+            </span>
+          </span>
+        </h1>
       </header>
 
       {error && <p role="alert" className="error">{errorMessage(error)}</p>}
