@@ -2,6 +2,7 @@ import PhaseBanner from '../components/PhaseBanner.jsx';
 import Roster from '../components/Roster.jsx';
 import ActionPrompt, { ACTION, nightActionFor } from '../components/ActionPrompt.jsx';
 import VoteBoard, { voteCountsOf, nominateTargets } from '../components/VoteBoard.jsx';
+import ChatPanel from '../components/ChatPanel.jsx';
 import Scope from '../components/Scope.jsx';
 import { ROLE_LABEL } from '../labels.js';
 import { errorMessage } from '../errors.js';
@@ -31,7 +32,7 @@ function nightReport(view) {
   return `${victim?.nickname ?? '누군가'}님이 밤 사이 사망했습니다.`;
 }
 
-export default function Game({ view, game }) {
+export default function Game({ view, messages, game }) {
   const report = view.phase === 'DAY_DISCUSSION' ? nightReport(view) : null;
   const action = nightActionFor(view);
   const nominable = nominateTargets(view);
@@ -77,7 +78,7 @@ export default function Game({ view, game }) {
         }
       />
 
-      {/* 채팅은 Task 18에서 붙인다. */}
+      <ChatPanel view={view} messages={messages} onSend={game.sendChat} />
     </main>
   );
 }
