@@ -1,5 +1,5 @@
-import { ROLE } from './roles.js';
-import { playerById, killPlayer } from './state.js';
+import { ROLE, PHASE } from './roles.js';
+import { playerById, killPlayer, setPhase, emptyNight } from './state.js';
 import { checkAndSetVictory } from './victory.js';
 
 /**
@@ -71,5 +71,48 @@ export function tallyJudge(room, { now = 0 } = {}) {
   if (executed && nomineeId) {
     killPlayer(room, nomineeId);
     checkAndSetVictory(room, now);
+  }
+}
+
+export function startNight(room, { now = 0 } = {}) {
+  room.day += 1;
+  room.night = emptyNight();
+  room.votes = {};
+  room.judgeVotes = {};
+  room.nominee = null;
+  setPhase(room, PHASE.NIGHT, now);
+}
+
+/** 현재 페이즈를 마감하고 다음 페이즈로 넘긴다. 전이 후의 페이즈를 돌려준다. */
+export function advancePhase(room, { now = 0, rng = Math.random } = {}) {
+  switch (room.phase) {
+    case PHASE.NIGHT:
+      resolveNight(room, { now, rng });
+      if (room.result) return room.phase; // checkAndSetVictory가 ENDED로 바꿔둔다
+      setPhase(room, PHASE.DAY_DISCUSSION, now);
+      return room.phase;
+
+    case PHASE.DAY_DISCUSSION:
+      setPhase(room, PHASE.VOTE_NOMINATE, now);
+      return room.phase;
+
+    case PHASE.VOTE_NOMINATE:
+      tallyNominate(room);
+      if (room.nominee) setPhase(room, PHASE.DEFENSE, now);
+      else startNight(room, { now });
+      return room.phase;
+
+    case PHASE.DEFENSE:
+      setPhase(room, PHASE.VOTE_JUDGE, now);
+      return room.phase;
+
+    case PHASE.VOTE_JUDGE:
+      tallyJudge(room, { now });
+      if (room.result) return room.phase;
+      startNight(room, { now });
+      return room.phase;
+
+    default:
+      return room.phase; // WAITING, ENDED
   }
 }
