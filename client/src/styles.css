@@ -1,0 +1,147 @@
+/* ===========================================================================
+   마피아 — 디자인 토큰
+
+   원칙 하나만 기억하면 된다:
+   호박색(--lamp)은 "나만 아는 것"에만 쓴다. 다른 어디에도 쓰지 않는다.
+   그래서 화면에 호박색이 보이면, 그건 남들에게는 안 보이는 정보다.
+   =========================================================================== */
+
+:root {
+  /* 밤 — 잉크빛 남색. 검정이 아니다. 사람들이 깨어서 속삭이는 방이다. */
+  --night: #131628;
+  --night-raised: #1d2138;
+  --night-line: #2a2f4a;
+  --night-ink: #e6e7f0;
+  --night-ink-dim: #7c82a0;
+
+  /* 낮 — 복사한 사건 기록 같은 회백색. 크림색이 아니다. */
+  --day: #e4e5e0;
+  --day-raised: #f1f1ed;
+  --day-line: #c9cac3;
+  --day-ink: #16171c;
+  --day-ink-dim: #5c5f6b;
+
+  /* 등불 — 내가 든 불빛. 나만 아는 것에만 쓴다. */
+  --lamp: #e8a33d;
+
+  /* 도장 — 사망자 진영 공개에만 쓴다. */
+  --stamp-mafia: #8c2233;
+  --stamp-citizen: #3d5a80;
+
+  /* 기본은 밤. 페이즈에 따라 .stage에서 바꾼다. */
+  --surface: var(--night);
+  --raised: var(--night-raised);
+  --line: var(--night-line);
+  --ink: var(--night-ink);
+  --ink-dim: var(--night-ink-dim);
+
+  --display: 'Gowun Batang', 'Nanum Myeongjo', serif;
+  --body: 'IBM Plex Sans KR', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --step: 4px;
+  --radius: 3px;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--night-ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lamp);
+  outline-offset: 2px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: calc(var(--step) * 6) 0;
+}
+
+/* --- 페이즈별 무대 -------------------------------------------------------
+   밤과 낮은 색만 바뀌는 게 아니라 빛의 양이 바뀐다.
+   ----------------------------------------------------------------------- */
+
+.stage {
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--ink);
+  transition: background-color 600ms ease, color 600ms ease;
+}
+
+.stage[data-daylight='true'] {
+  --surface: var(--day);
+  --raised: var(--day-raised);
+  --line: var(--day-line);
+  --ink: var(--day-ink);
+  --ink-dim: var(--day-ink-dim);
+}
+
+/* --- 공통 조각 ---------------------------------------------------------- */
+
+.hint {
+  color: var(--ink-dim);
+  font-size: 13px;
+  margin: calc(var(--step) * 2) 0 0;
+}
+
+.error {
+  color: var(--stamp-mafia);
+  background: color-mix(in srgb, var(--stamp-mafia) 12%, transparent);
+  border-left: 2px solid var(--stamp-mafia);
+  padding: calc(var(--step) * 2) calc(var(--step) * 3);
+  font-size: 14px;
+  margin: calc(var(--step) * 4) 0;
+}
+
+.stage[data-daylight='false'] .error {
+  color: #f0a0ad;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
